@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card p-4">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-section-title mb-3">Report Information</div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Family Member *</label>
+                        {{ form.member }}
+                        {% if form.member.errors %}<div class="text-danger small">{{ form.member.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Report Type *</label>
+                        {{ form.report_type }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Report Title *</label>
+                        {{ form.title }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Report Date *</label>
+                        {{ form.report_date }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Doctor</label>
+                        {{ form.doctor }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Hospital / Lab</label>
+                        {{ form.hospital_lab }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Upload File</label>
+                        {{ form.file }}
+                        <div class="form-text">Supported: PDF, JPG, JPEG, PNG</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Notes</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-upload me-1"></i>{{ title }}</button>
+                    <a href="{% url 'vault:list' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{{ medicine.name }}{% endblock %}
+{% block page_title %}Medicine Detail{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card p-4">
+            {% if medicine.photo %}
+            <img src="{{ medicine.photo.url }}" class="img-fluid rounded mb-3" alt="{{ medicine.name }}">
+            {% else %}
+            <div class="text-center mb-3 py-4" style="background:#F0F7F5;border-radius:10px;">
+                <i class="bi bi-capsule text-primary" style="font-size:4rem;"></i>
+            </div>
+            {% endif %}
+            <h5 class="fw-bold mb-1">{{ medicine.name }}</h5>
+            <p class="text-muted mb-3">{{ medicine.dosage }}</p>
+            <div class="list-group list-group-flush small">
+                <div class="list-group-item px-0 d-flex justify-content-between">
+                    <span class="text-muted">Member</span>
+                    <strong>{{ medicine.member.name }}</strong>
+                </div>
+                <div class="list-group-item px-0 d-flex justify-content-between">
+                    <span class="text-muted">Frequency</span>
+                    <strong>{{ medicine.get_frequency_display }}</strong>
+                </div>
+                <div class="list-group-item px-0 d-flex justify-content-between">
+                    <span class="text-muted">Start Date</span>
+                    <strong>{{ medicine.start_date|date:"d M Y" }}</strong>
+                </div>
+                {% if medicine.end_date %}
+                <div class="list-group-item px-0 d-flex justify-content-between">
+                    <span class="text-muted">End Date</span>
+                    <strong>{{ medicine.end_date|date:"d M Y" }}</strong>
+                </div>
+                {% endif %}
+                {% if medicine.prescribed_by %}
+                <div class="list-group-item px-0 d-flex justify-content-between">
+                    <span class="text-muted">Prescribed By</span>
+                    <strong>Dr. {{ medicine.prescribed_by }}</strong>
+                </div>
+                {% endif %}
+                {% if medicine.instructions %}
+                <div class="list-group-item px-0">
+                    <span class="text-muted d-block mb-1">Instructions</span>
+                    <span>{{ medicine.instructions }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="d-grid gap-2 mt-3">
+                <a href="{% url 'medicines:edit' medicine.pk %}" class="btn btn-outline-primary btn-sm">Edit Medicine</a>
+                <a href="{% url 'medicines:delete' medicine.pk %}" class="btn btn-outline-danger btn-sm">Delete</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <!-- Stock Card -->
+        <div class="card mb-4 {% if medicine.is_low_stock %}border-danger{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Stock Status</span>
+                <a href="{% url 'medicines:stock_update' medicine.pk %}" class="btn btn-sm btn-success">+ Restock</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 text-center mb-3">
+                    <div class="col-4">
+                        <div class="fw-bold fs-3 {% if medicine.is_low_stock %}text-danger{% else %}text-primary{% endif %}">{{ medicine.quantity_remaining }}</div>
+                        <div class="text-muted small">Remaining</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-3 text-secondary">{{ medicine.quantity_purchased }}</div>
+                        <div class="text-muted small">Total Purchased</div>
+                    </div>
+                    <div class="col-4">
+                        <div class="fw-bold fs-3 {% if medicine.expiry_soon %}text-warning{% else %}text-muted{% endif %}">
+                            {% if medicine.estimated_days_remaining %}{{ medicine.estimated_days_remaining }}{% else %}—{% endif %}
+                        </div>
+                        <div class="text-muted small">Days Supply</div>
+                    </div>
+                </div>
+                {% if medicine.quantity_purchased > 0 %}
+                <div class="progress mb-2" style="height:10px;border-radius:10px;">
+                    {% widthratio medicine.quantity_remaining medicine.quantity_purchased 100 as pct %}
+                    <div class="progress-bar {% if medicine.is_low_stock %}bg-danger{% elif pct < 40 %}bg-warning{% else %}bg-success{% endif %}"
+                         style="width:{{ pct }}%;border-radius:10px;"></div>
+                </div>
+                {% endif %}
+                {% if medicine.expiry_date %}
+                <div class="text-center small {% if medicine.is_expired %}text-danger fw-bold{% elif medicine.expiry_soon %}text-warning fw-bold{% else %}text-muted{% endif %}">
+                    Expiry: {{ medicine.expiry_date|date:"d M Y" }}
+                    {% if medicine.is_expired %}— EXPIRED{% elif medicine.expiry_soon %}— Expiring Soon!{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reminders -->
+        <div class="card">
+            <div class="card-header"><i class="bi bi-bell me-2"></i>Recent Reminders</div>
+            <div class="card-body p-0">
+                {% if reminders %}
+                <div class="list-group list-group-flush">
+                    {% for reminder in reminders %}
+                    <div class="list-group-item d-flex align-items-center gap-3">
+                        <div class="stat-icon {% if reminder.status == 'taken' %}bg-success{% elif reminder.status == 'missed' %}bg-danger{% else %}bg-warning{% endif %} bg-opacity-10" style="width:32px;height:32px;border-radius:8px;">
+                            <i class="bi {% if reminder.status == 'taken' %}bi-check text-success{% elif reminder.status == 'missed' %}bi-x text-danger{% else %}bi-clock text-warning{% endif %} small"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="small fw-semibold">{{ reminder.scheduled_time|date:"d M Y" }} at {{ reminder.scheduled_time|time:"H:i" }}</div>
+                            {% if reminder.notes %}<div class="text-muted" style="font-size:.75rem;">{{ reminder.notes }}</div>{% endif %}
+                        </div>
+                        <span class="badge {% if reminder.status == 'taken' %}bg-success{% elif reminder.status == 'missed' %}bg-danger{% elif reminder.status == 'skipped' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                            {{ reminder.get_status_display }}
+                        </span>
+                        {% if reminder.status == 'pending' %}
+                        <a href="{% url 'medicines:reminder_update' reminder.pk %}" class="btn btn-sm btn-outline-success py-1 px-2" style="font-size:.75rem;">Update</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">No reminder history yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

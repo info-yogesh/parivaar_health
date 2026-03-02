@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Restock Medicine{% endblock %}
+{% block page_title %}Restock Medicine{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-4">
+            <h5 class="fw-bold mb-1">{{ medicine.name }}</h5>
+            <p class="text-muted small mb-1">Current stock: <strong>{{ medicine.quantity_remaining }} units</strong></p>
+            <p class="text-muted small mb-4">For: {{ medicine.member.name }}</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Units to Add</label>
+                    {{ form.quantity_to_add }}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i>Add Stock</button>
+                    <a href="{% url 'medicines:detail' medicine.pk %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

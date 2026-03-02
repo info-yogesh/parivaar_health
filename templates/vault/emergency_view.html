@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Emergency View{% endblock %}
+{% block page_title %}🚨 Emergency View{% endblock %}
+{% block content %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-octagon-fill fs-4"></i>
+    <div>
+        <strong>Emergency Summary — {{ family.name }} Family</strong>
+        <div class="small">Quick health overview for emergency use. Share this information with healthcare providers.</div>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for item in members_data %}
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center gap-3" style="background:#F0F7F5;">
+                <div class="member-avatar lg">{{ item.member.name|first|upper }}</div>
+                <div>
+                    <h6 class="fw-bold mb-0">{{ item.member.name }}</h6>
+                    <div class="text-muted small">
+                        {{ item.member.get_relationship_display }}
+                        {% if item.member.get_age %} &bull; Age {{ item.member.get_age }}{% endif %}
+                        &bull; {{ item.member.get_gender_display }}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <!-- Chronic Conditions -->
+                {% if item.chronic_conditions %}
+                <div class="mb-3">
+                    <div class="small fw-bold text-muted mb-1">KNOWN CONDITIONS</div>
+                    {% for c in item.chronic_conditions %}
+                        <span class="badge bg-danger me-1 mb-1">{{ c.get_condition_display }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Active Medicines -->
+                <div class="mb-3">
+                    <div class="small fw-bold text-muted mb-1">CURRENT MEDICINES ({{ item.active_medicines.count }})</div>
+                    {% if item.active_medicines %}
+                    {% for med in item.active_medicines %}
+                    <div class="small d-flex justify-content-between py-1 border-bottom">
+                        <span class="fw-semibold">{{ med.name }}</span>
+                        <span class="text-muted">{{ med.dosage }} &bull; {{ med.get_frequency_display }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <span class="text-muted small">None</span>
+                    {% endif %}
+                </div>
+
+                <!-- Latest Reports -->
+                <div class="mb-3">
+                    <div class="small fw-bold text-muted mb-1">RECENT REPORTS</div>
+                    {% if item.latest_reports %}
+                    {% for report in item.latest_reports %}
+                    <div class="small d-flex justify-content-between align-items-center py-1 border-bottom">
+                        <span>{{ report.title }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted">{{ report.report_date|date:"d M Y" }}</span>
+                            {% if report.file %}
+                            <a href="{{ report.file.url }}" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:.65rem;padding:1px 6px;">Open</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <span class="text-muted small">No recent reports</span>
+                    {% endif %}
+                </div>
+
+                <!-- Upcoming Appointments -->
+                {% if item.upcoming_appointments %}
+                <div>
+                    <div class="small fw-bold text-muted mb-1">UPCOMING APPOINTMENTS</div>
+                    {% for appt in item.upcoming_appointments %}
+                    <div class="small py-1">
+                        {{ appt.get_appointment_type_display }} &bull; {{ appt.date_time|date:"d M Y H:i" }}
+                        {% if appt.doctor_name %}&bull; Dr. {{ appt.doctor_name }}{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="text-center mt-4">
+    <button onclick="window.print()" class="btn btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i> Print Summary
+    </button>
+</div>
+{% endblock %}

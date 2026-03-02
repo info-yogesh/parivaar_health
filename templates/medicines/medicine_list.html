@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Medicine Cabinet{% endblock %}
+{% block page_title %}Medicine Cabinet{% endblock %}
+{% block content %}
+
+<!-- Filter + Add Bar -->
+<div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+    <form method="get" class="d-flex gap-2 flex-wrap">
+        <select name="member" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="">All Members</option>
+            {% for m in members %}
+            <option value="{{ m.pk }}" {% if selected_member == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+    <a href="{% url 'medicines:add' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i> Add Medicine
+    </a>
+</div>
+
+<!-- Alert Summary -->
+{% if low_stock_count or expiry_soon_count %}
+<div class="row g-2 mb-4">
+    {% if low_stock_count %}
+    <div class="col-auto">
+        <div class="alert alert-danger py-2 px-3 mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span class="small">{{ low_stock_count }} medicine{{ low_stock_count|pluralize }} low on stock</span>
+        </div>
+    </div>
+    {% endif %}
+    {% if expiry_soon_count %}
+    <div class="col-auto">
+        <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-clock-fill"></i>
+            <span class="small">{{ expiry_soon_count }} medicine{{ expiry_soon_count|pluralize }} expiring soon</span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Medicine Grid -->
+<div class="row g-3">
+    {% for medicine in medicines %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 {% if medicine.is_low_stock %}border-danger{% elif medicine.expiry_soon %}border-warning{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-1">{{ medicine.name }}</h6>
+                        <span class="badge bg-light text-dark border small">{{ medicine.dosage }}</span>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'medicines:edit' medicine.pk %}" class="btn btn-sm btn-outline-secondary p-1"><i class="bi bi-pencil" style="font-size:.75rem;"></i></a>
+                        <a href="{% url 'medicines:delete' medicine.pk %}" class="btn btn-sm btn-outline-danger p-1"><i class="bi bi-trash" style="font-size:.75rem;"></i></a>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="member-avatar" style="width:28px;height:28px;font-size:.75rem;">{{ medicine.member.name|first|upper }}</div>
+                    <span class="small text-muted">{{ medicine.member.name }}</span>
+                </div>
+
+                <div class="small text-muted mb-3">
+                    <i class="bi bi-arrow-repeat me-1"></i>{{ medicine.get_frequency_display }}
+                    {% if medicine.prescribed_by %}&bull; Dr. {{ medicine.prescribed_by }}{% endif %}
+                </div>
+
+                <!-- Stock Bar -->
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="{% if medicine.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                            {{ medicine.quantity_remaining }} / {{ medicine.quantity_purchased }} units
+                        </span>
+                        {% if medicine.estimated_days_remaining %}
+                        <span class="text-muted">~{{ medicine.estimated_days_remaining }} days</span>
+                        {% endif %}
+                    </div>
+                    {% if medicine.quantity_purchased > 0 %}
+                    <div class="progress" style="height:6px;">
+                        {% widthratio medicine.quantity_remaining medicine.quantity_purchased 100 as pct %}
+                        <div class="progress-bar {% if medicine.is_low_stock %}bg-danger{% elif pct < 40 %}bg-warning{% else %}bg-success{% endif %}"
+                             style="width:{{ pct }}%"></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if medicine.expiry_date %}
+                <div class="small {% if medicine.is_expired %}text-danger fw-bold{% elif medicine.expiry_soon %}text-warning fw-bold{% else %}text-muted{% endif %}">
+                    <i class="bi bi-calendar-x me-1"></i>
+                    Expires: {{ medicine.expiry_date|date:"d M Y" }}
+                    {% if medicine.is_expired %} (EXPIRED){% elif medicine.expiry_soon %} (Soon!){% endif %}
+                </div>
+                {% endif %}
+
+                <div class="d-flex gap-2 mt-3">
+                    <a href="{% url 'medicines:detail' medicine.pk %}" class="btn btn-sm btn-outline-primary flex-grow-1">Details</a>
+                    <a href="{% url 'medicines:stock_update' medicine.pk %}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-capsule display-1 text-muted opacity-25"></i>
+        <h5 class="mt-3 text-muted">No medicines in cabinet</h5>
+        <a href="{% url 'medicines:add' %}" class="btn btn-primary mt-2">Add First Medicine</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Delete Appointment{% endblock %}
+{% block page_title %}Delete Appointment{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <i class="bi bi-calendar-x text-danger display-4 mb-3"></i>
+            <h5>Delete this appointment?</h5>
+            <p class="text-muted">{{ object.member.name }} &bull; {{ object.get_appointment_type_display }} &bull; {{ object.date_time|date:"d M Y H:i" }}</p>
+            <form method="post" class="d-flex gap-2 justify-content-center mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <a href="{% url 'calendar_app:list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

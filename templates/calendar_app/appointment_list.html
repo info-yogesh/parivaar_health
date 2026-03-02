@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Appointments{% endblock %}
+{% block page_title %}Appointments{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="?view=upcoming" class="btn btn-sm {% if view_mode == 'upcoming' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Upcoming</a>
+        <a href="?view=this_month" class="btn btn-sm {% if view_mode == 'this_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Month</a>
+        <a href="?view=past" class="btn btn-sm {% if view_mode == 'past' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Past</a>
+        <a href="?view=all" class="btn btn-sm {% if view_mode == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+    </div>
+    <a href="{% url 'calendar_app:add' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-calendar-plus me-1"></i> Add Appointment
+    </a>
+</div>
+
+<!-- Member Filter -->
+<div class="mb-4">
+    <form method="get" class="d-inline-flex align-items-center gap-2">
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        <label class="form-label mb-0 small fw-semibold">Filter by member:</label>
+        <select name="member" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+            <option value="">All Members</option>
+            {% for m in members %}
+            <option value="{{ m.pk }}" {% if selected_member == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="row g-3">
+    {% for appt in appointments %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body d-flex align-items-center gap-4">
+                <div class="text-center" style="min-width:60px;background:#F0F7F5;border-radius:10px;padding:.75rem .5rem;">
+                    <div class="fw-bold fs-4 text-primary lh-1">{{ appt.date_time|date:"d" }}</div>
+                    <div class="small text-muted">{{ appt.date_time|date:"M" }}</div>
+                    <div class="small text-muted">{{ appt.date_time|date:"Y" }}</div>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="member-avatar" style="width:30px;height:30px;font-size:.8rem;">{{ appt.member.name|first|upper }}</div>
+                        <strong>{{ appt.member.name }}</strong>
+                        <span class="badge bg-light text-dark border small">{{ appt.get_appointment_type_display }}</span>
+                    </div>
+                    <div class="text-muted small">
+                        {% if appt.doctor_name %}<i class="bi bi-person-badge me-1"></i>Dr. {{ appt.doctor_name }}{% endif %}
+                        {% if appt.clinic_hospital %} &bull; <i class="bi bi-building me-1"></i>{{ appt.clinic_hospital }}{% endif %}
+                        &bull; <i class="bi bi-clock me-1"></i>{{ appt.date_time|time:"H:i" }}
+                    </div>
+                    {% if appt.notes %}<div class="text-muted small mt-1"><i class="bi bi-chat-text me-1"></i>{{ appt.notes|truncatechars:80 }}</div>{% endif %}
+                </div>
+                <div class="text-end d-flex flex-column gap-2 align-items-end">
+                    <span class="badge {% if appt.status == 'completed' %}bg-success{% elif appt.status == 'cancelled' %}bg-danger{% elif appt.status == 'rescheduled' %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                        {{ appt.get_status_display }}
+                    </span>
+                    <div class="d-flex gap-1">
+                        {% if appt.status == 'scheduled' %}
+                        <a href="{% url 'calendar_app:update_status' appt.pk 'completed' %}" class="btn btn-sm btn-outline-success py-1 px-2" style="font-size:.75rem;" title="Mark Complete">✓</a>
+                        <a href="{% url 'calendar_app:update_status' appt.pk 'cancelled' %}" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size:.75rem;" title="Cancel">✗</a>
+                        {% endif %}
+                        <a href="{% url 'calendar_app:edit' appt.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size:.75rem;"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'calendar_app:delete' appt.pk %}" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size:.75rem;"><i class="bi bi-trash"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-calendar3 display-1 text-muted opacity-25"></i>
+        <h5 class="mt-3 text-muted">No appointments found</h5>
+        <a href="{% url 'calendar_app:add' %}" class="btn btn-primary mt-2">Schedule Appointment</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

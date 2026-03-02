@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}{{ member.name }}{% endblock %}
+{% block page_title %}Member Profile{% endblock %}
+{% block content %}
+<div class="row g-4">
+    <!-- Profile Card -->
+    <div class="col-lg-4">
+        <div class="card p-4 text-center">
+            {% if member.profile_photo %}
+                <img src="{{ member.profile_photo.url }}" class="rounded-circle mx-auto mb-3" style="width:80px;height:80px;object-fit:cover;">
+            {% else %}
+                <div class="member-avatar lg mx-auto mb-3" style="width:80px;height:80px;font-size:2rem;">{{ member.name|first|upper }}</div>
+            {% endif %}
+            <h5 class="fw-bold mb-1">{{ member.name }}</h5>
+            <p class="text-muted mb-2">{{ member.get_relationship_display }}</p>
+            <span class="badge {% if member.role == 'admin' %}bg-success{% else %}bg-primary{% endif %}">{{ member.get_role_display }}</span>
+            <hr>
+            <div class="text-start small">
+                {% if member.get_age %}<div class="mb-2"><i class="bi bi-cake2 me-2 text-muted"></i>Age: <strong>{{ member.get_age }} years</strong></div>{% endif %}
+                <div class="mb-2"><i class="bi bi-gender-ambiguous me-2 text-muted"></i>{{ member.get_gender_display }}</div>
+                {% if member.phone %}<div class="mb-2"><i class="bi bi-phone me-2 text-muted"></i>{{ member.phone }}</div>{% endif %}
+                {% if member.abha_id %}<div class="mb-2"><i class="bi bi-shield-check me-2 text-muted"></i>ABHA: {{ member.abha_id }}</div>{% endif %}
+            </div>
+            {% if member.chronic_conditions.exists %}
+            <hr>
+            <div class="text-start">
+                <div class="small fw-semibold text-muted mb-2">Chronic Conditions</div>
+                {% for c in member.chronic_conditions.all %}
+                    <span class="badge bg-warning text-dark me-1 mb-1">{{ c.get_condition_display }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <hr>
+            <div class="d-grid gap-2">
+                <a href="{% url 'accounts:edit_member' member.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil me-1"></i> Edit Profile
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details -->
+    <div class="col-lg-8">
+        <!-- Active Medicines -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-capsule-pill me-2 text-primary"></i>Active Medicines</span>
+                <a href="{% url 'medicines:add' %}" class="btn btn-sm btn-outline-primary">+ Add</a>
+            </div>
+            <div class="card-body">
+                {% if medicines %}
+                <div class="list-group list-group-flush">
+                    {% for med in medicines %}
+                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">{{ med.name }}</div>
+                            <small class="text-muted">{{ med.dosage }} &bull; {{ med.get_frequency_display }}</small>
+                        </div>
+                        <div class="text-end">
+                            <div class="small {% if med.is_low_stock %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                {{ med.quantity_remaining }} left
+                            </div>
+                            <a href="{% url 'medicines:detail' med.pk %}" class="btn btn-sm btn-link p-0">View</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0 small">No active medicines</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Appointments -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar3 me-2 text-primary"></i>Appointments</span>
+                <a href="{% url 'calendar_app:add' %}" class="btn btn-sm btn-outline-primary">+ Add</a>
+            </div>
+            <div class="card-body">
+                {% if appointments %}
+                {% for appt in appointments %}
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="text-center" style="min-width:45px">
+                        <div class="fw-bold text-primary">{{ appt.date_time|date:"d" }}</div>
+                        <div class="small text-muted">{{ appt.date_time|date:"M" }}</div>
+                    </div>
+                    <div>
+                        <div class="fw-semibold small">{{ appt.get_appointment_type_display }}</div>
+                        <div class="text-muted small">{{ appt.doctor_name|default:"—" }} &bull; {{ appt.clinic_hospital|default:"" }}</div>
+                    </div>
+                    <span class="badge ms-auto {% if appt.status == 'completed' %}bg-success{% elif appt.status == 'cancelled' %}bg-danger{% else %}bg-primary{% endif %}">
+                        {{ appt.get_status_display }}
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0 small">No appointments</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Reports -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-folder2 me-2 text-primary"></i>Recent Reports</span>
+                <a href="{% url 'vault:upload' %}" class="btn btn-sm btn-outline-primary">+ Upload</a>
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                {% for report in reports %}
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="stat-icon {% if report.file_extension == 'pdf' %}bg-danger{% else %}bg-info{% endif %} bg-opacity-10" style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi {% if report.file_extension == 'pdf' %}bi-file-earmark-pdf text-danger{% else %}bi-file-earmark-image text-info{% endif %}"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold small">{{ report.title }}</div>
+                        <div class="text-muted small">{{ report.get_report_type_display }} &bull; {{ report.report_date|date:"d M Y" }}</div>
+                    </div>
+                    <a href="{% url 'vault:detail' report.pk %}" class="btn btn-sm btn-link ms-auto p-0">View</a>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted mb-0 small">No reports uploaded</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

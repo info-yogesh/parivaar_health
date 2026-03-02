@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Parivaar Health{% endblock %} | Parivaar Health</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2E7D6B;
+            --primary-light: #4CAF96;
+            --primary-dark: #1B5E4F;
+            --secondary: #F4F7F5;
+            --accent: #FF6B35;
+            --sidebar-width: 260px;
+        }
+        body {
+            background: #F0F4F2;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary) 100%);
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform .3s ease;
+        }
+        .sidebar-brand {
+            padding: 1.5rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-brand h5 {
+            color: #fff;
+            font-weight: 700;
+            margin: 0;
+        }
+        .sidebar-brand small {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: .65rem 1.25rem;
+            border-radius: 8px;
+            margin: 2px 8px;
+            font-size: 0.9rem;
+            transition: all .2s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+        .sidebar .nav-link i {
+            width: 22px;
+        }
+        .sidebar-section {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: .75rem 1.5rem .25rem;
+            font-weight: 600;
+        }
+        /* Main content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+        .topbar {
+            background: #fff;
+            border-bottom: 1px solid #E5EAE8;
+            padding: .75rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid #F0F4F2;
+            font-weight: 600;
+        }
+        /* Stat cards */
+        .stat-card {
+            border-radius: 12px;
+            border: none;
+            overflow: hidden;
+        }
+        .stat-card .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        /* Badges */
+        .badge-pill {
+            border-radius: 50px;
+        }
+        /* Alert items */
+        .alert-item {
+            border-left: 4px solid;
+            border-radius: 0 8px 8px 0;
+            padding: .75rem 1rem;
+            margin-bottom: .5rem;
+            background: #fff;
+        }
+        .alert-item.danger { border-color: #dc3545; }
+        .alert-item.warning { border-color: #ffc107; }
+        .alert-item.info { border-color: #0dcaf0; }
+        /* Member avatar */
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .member-avatar.lg {
+            width: 60px;
+            height: 60px;
+            font-size: 1.4rem;
+        }
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-outline-primary:hover {
+            background: var(--primary);
+        }
+        /* Navbar toggle for mobile */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+        /* Medicine status colors */
+        .status-taken { color: #198754; }
+        .status-missed { color: #dc3545; }
+        .status-pending { color: #fd7e14; }
+        /* Form styles */
+        .form-section-title {
+            font-weight: 600;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: .5rem;
+            margin-bottom: 1rem;
+        }
+        /* Timeline */
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: -1rem;
+            width: 2px;
+            background: #E5EAE8;
+        }
+        .timeline-item:last-child::before { display: none; }
+        .timeline-dot {
+            position: absolute;
+            left: 0;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-light);
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <h5><i class="bi bi-heart-pulse-fill me-2"></i>Parivaar Health</h5>
+            {% if user.is_authenticated %}
+                {% if user.admin_family %}
+                    <small>{{ user.admin_family.name }} Family</small>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <ul class="nav flex-column pt-2">
+            <div class="sidebar-section">Main</div>
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                </a>
+            </li>
+            <div class="sidebar-section">Family</div>
+            <li class="nav-item">
+                <a class="nav-link {% if 'member' in request.path %}active{% endif %}" href="{% url 'accounts:member_list' %}">
+                    <i class="bi bi-people-fill"></i> Family Members
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if 'family-summary' in request.path %}active{% endif %}" href="{% url 'core:family_summary' %}">
+                    <i class="bi bi-bar-chart-fill"></i> Family Summary
+                </a>
+            </li>
+            <div class="sidebar-section">Health</div>
+            <li class="nav-item">
+                <a class="nav-link {% if 'medicines' in request.path %}active{% endif %}" href="{% url 'medicines:list' %}">
+                    <i class="bi bi-capsule-pill"></i> Medicine Cabinet
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'medicines:today_reminders' %}">
+                    <i class="bi bi-bell-fill"></i> Today's Reminders
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if 'calendar' in request.path %}active{% endif %}" href="{% url 'calendar_app:list' %}">
+                    <i class="bi bi-calendar3"></i> Appointments
+                </a>
+            </li>
+            <div class="sidebar-section">Records</div>
+            <li class="nav-item">
+                <a class="nav-link {% if 'vault' in request.path %}active{% endif %}" href="{% url 'vault:list' %}">
+                    <i class="bi bi-folder-fill"></i> Reports Vault
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'vault:emergency' %}">
+                    <i class="bi bi-shield-plus-fill" style="color:#FF6B35"></i> Emergency View
+                </a>
+            </li>
+            <div class="sidebar-section">Account</div>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'accounts:edit_family' %}">
+                    <i class="bi bi-gear-fill"></i> Family Settings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'accounts:logout' %}">
+                    <i class="bi bi-box-arrow-left"></i> Logout
+                </a>
+            </li>
+        </ul>
+        {% endif %}
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="topbar d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm d-md-none" onclick="document.getElementById('sidebar').classList.toggle('show')">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <span class="page-title">{% block page_title %}Dashboard{% endblock %}</span>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'medicines:add' %}" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex align-items-center gap-1">
+                    <i class="bi bi-plus-lg"></i> Add Medicine
+                </a>
+                <a href="{% url 'vault:upload' %}" class="btn btn-sm btn-outline-primary d-none d-md-inline-flex align-items-center gap-1">
+                    <i class="bi bi-upload"></i> Upload Report
+                </a>
+                <a href="{% url 'calendar_app:add' %}" class="btn btn-sm btn-primary d-none d-md-inline-flex align-items-center gap-1">
+                    <i class="bi bi-calendar-plus"></i> Appointment
+                </a>
+                <div class="member-avatar ms-2">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="px-4 pt-3">
+            {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Page Content -->
+        <div class="p-4">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

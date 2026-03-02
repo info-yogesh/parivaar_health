@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Today's Reminders{% endblock %}
+{% block page_title %}Today's Reminders{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if reminders %}
+        {% for reminder in reminders %}
+        <div class="card mb-3 {% if reminder.status == 'taken' %}border-success{% elif reminder.status == 'missed' %}border-danger{% endif %}">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon {% if reminder.status == 'taken' %}bg-success{% elif reminder.status == 'missed' %}bg-danger{% elif reminder.status == 'skipped' %}bg-secondary{% else %}bg-warning{% endif %} bg-opacity-10" style="width:48px;height:48px;border-radius:12px;font-size:1.3rem;">
+                    <i class="bi bi-capsule {% if reminder.status == 'taken' %}text-success{% elif reminder.status == 'missed' %}text-danger{% else %}text-warning{% endif %}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">{{ reminder.medicine.name }}</div>
+                    <div class="text-muted small">{{ reminder.medicine.member.name }} &bull; {{ reminder.medicine.dosage }} &bull; {{ reminder.medicine.get_frequency_display }}</div>
+                    <div class="text-muted small"><i class="bi bi-clock me-1"></i>{{ reminder.scheduled_time|time:"H:i" }}</div>
+                </div>
+                <div class="text-end">
+                    <span class="badge {% if reminder.status == 'taken' %}bg-success{% elif reminder.status == 'missed' %}bg-danger{% elif reminder.status == 'skipped' %}bg-secondary{% else %}bg-warning text-dark{% endif %} mb-2 d-block">
+                        {{ reminder.get_status_display }}
+                    </span>
+                    {% if reminder.status == 'pending' %}
+                    <a href="{% url 'medicines:reminder_update' reminder.pk %}" class="btn btn-sm btn-primary">Update Status</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-check2-circle display-1 text-success opacity-50"></i>
+            <h4 class="mt-3">No reminders for today!</h4>
+            <p class="text-muted">All medicines have been taken or none are scheduled for today.</p>
+            <a href="{% url 'medicines:list' %}" class="btn btn-primary">View Medicine Cabinet</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

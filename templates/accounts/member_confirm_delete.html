@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Delete Member{% endblock %}
+{% block page_title %}Delete Member{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card p-4 text-center">
+            <i class="bi bi-exclamation-triangle-fill text-danger display-4 mb-3"></i>
+            <h5>Delete {{ object.name }}?</h5>
+            <p class="text-muted">This will permanently delete this member and all their associated health data including medicines, appointments, and reports.</p>
+            <form method="post" class="d-flex gap-2 justify-content-center mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <a href="{% url 'accounts:member_list' %}" class="btn btn-outline-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
