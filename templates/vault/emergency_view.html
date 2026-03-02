@@ -1,97 +1,294 @@
 {% extends 'base.html' %}
-{% block title %}Emergency View{% endblock %}
-{% block page_title %}🚨 Emergency View{% endblock %}
+{% block title %}Emergency Health View{% endblock %}
+{% block page_title %}Emergency Health View{% endblock %}
+
 {% block content %}
-<div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
-    <i class="bi bi-exclamation-octagon-fill fs-4"></i>
-    <div>
-        <strong>Emergency Summary — {{ family.name }} Family</strong>
-        <div class="small">Quick health overview for emergency use. Share this information with healthcare providers.</div>
-    </div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted small mb-0">
+    <i class="bi bi-shield-exclamation me-1 text-danger"></i>
+    Critical health summary for {{ family.name }} — for emergency reference only
+  </p>
+  <button onclick="window.print()" class="btn btn-sm btn-outline-danger">
+    <i class="bi bi-printer me-1"></i>Print
+  </button>
 </div>
 
-<div class="row g-4">
-    {% for item in members_data %}
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center gap-3" style="background:#F0F7F5;">
-                <div class="member-avatar lg">{{ item.member.name|first|upper }}</div>
-                <div>
-                    <h6 class="fw-bold mb-0">{{ item.member.name }}</h6>
-                    <div class="text-muted small">
-                        {{ item.member.get_relationship_display }}
-                        {% if item.member.get_age %} &bull; Age {{ item.member.get_age }}{% endif %}
-                        &bull; {{ item.member.get_gender_display }}
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-3">
-                <!-- Chronic Conditions -->
-                {% if item.chronic_conditions %}
-                <div class="mb-3">
-                    <div class="small fw-bold text-muted mb-1">KNOWN CONDITIONS</div>
-                    {% for c in item.chronic_conditions %}
-                        <span class="badge bg-danger me-1 mb-1">{{ c.get_condition_display }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
+{% for item in members_data %}
+<div class="card mb-4 emergency-card">
 
-                <!-- Active Medicines -->
-                <div class="mb-3">
-                    <div class="small fw-bold text-muted mb-1">CURRENT MEDICINES ({{ item.active_medicines.count }})</div>
-                    {% if item.active_medicines %}
-                    {% for med in item.active_medicines %}
-                    <div class="small d-flex justify-content-between py-1 border-bottom">
-                        <span class="fw-semibold">{{ med.name }}</span>
-                        <span class="text-muted">{{ med.dosage }} &bull; {{ med.get_frequency_display }}</span>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <span class="text-muted small">None</span>
-                    {% endif %}
-                </div>
-
-                <!-- Latest Reports -->
-                <div class="mb-3">
-                    <div class="small fw-bold text-muted mb-1">RECENT REPORTS</div>
-                    {% if item.latest_reports %}
-                    {% for report in item.latest_reports %}
-                    <div class="small d-flex justify-content-between align-items-center py-1 border-bottom">
-                        <span>{{ report.title }}</span>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="text-muted">{{ report.report_date|date:"d M Y" }}</span>
-                            {% if report.file %}
-                            <a href="{{ report.file.url }}" target="_blank" class="btn btn-xs btn-outline-primary" style="font-size:.65rem;padding:1px 6px;">Open</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <span class="text-muted small">No recent reports</span>
-                    {% endif %}
-                </div>
-
-                <!-- Upcoming Appointments -->
-                {% if item.upcoming_appointments %}
-                <div>
-                    <div class="small fw-bold text-muted mb-1">UPCOMING APPOINTMENTS</div>
-                    {% for appt in item.upcoming_appointments %}
-                    <div class="small py-1">
-                        {{ appt.get_appointment_type_display }} &bull; {{ appt.date_time|date:"d M Y H:i" }}
-                        {% if appt.doctor_name %}&bull; Dr. {{ appt.doctor_name }}{% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
+  {# ── Member header ── #}
+  <div class="card-header py-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        {% if item.member.profile_photo %}
+          <img src="{{ item.member.profile_photo.url }}"
+               class="rounded-circle" width="44" height="44"
+               style="object-fit:cover;" alt="{{ item.member.name }}">
+        {% else %}
+          <div class="avatar-placeholder">
+            <i class="bi bi-person-fill text-white fs-5"></i>
+          </div>
+        {% endif %}
+        <div>
+          <div class="fw-bold text-white">{{ item.member.name }}</div>
+          <div class="text-white-50 small">
+            {{ item.member.get_relationship_display }}
+            {% if item.member.get_age %}&bull; {{ item.member.get_age }} yrs{% endif %}
+            &bull; {{ item.member.get_gender_display }}
+          </div>
         </div>
+      </div>
+      {% if item.extraction and item.extraction.health_score %}
+      <div class="text-center">
+        <div class="fw-bold text-white fs-3 lh-1">{{ item.extraction.health_score }}</div>
+        <div class="text-white-50" style="font-size:.65rem;">Health Score</div>
+      </div>
+      {% endif %}
     </div>
-    {% endfor %}
-</div>
+  </div>
 
-<div class="text-center mt-4">
-    <button onclick="window.print()" class="btn btn-outline-secondary">
-        <i class="bi bi-printer me-1"></i> Print Summary
-    </button>
+  <div class="card-body p-4">
+    <div class="row g-4">
+
+      {# ── Left: clinical overview ── #}
+      <div class="col-lg-4">
+
+        {# Chronic conditions #}
+        {% if item.chronic_conditions %}
+        <div class="mb-4">
+          <div class="emg-label">Chronic Conditions</div>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            {% for cc in item.chronic_conditions %}
+            <span class="badge rounded-pill"
+                  style="background:#FFF3E0;color:#E65100;font-size:.78rem;">
+              {{ cc.get_condition_display }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# Active medicines #}
+        <div class="mb-4">
+          <div class="emg-label">Active Medicines</div>
+          {% if item.active_medicines %}
+          <div class="mt-2">
+            {% for med in item.active_medicines %}
+            <div class="d-flex justify-content-between align-items-start
+                        py-2 border-bottom border-light">
+              <div>
+                <div class="small fw-semibold">{{ med.name }}</div>
+                <div class="text-muted" style="font-size:.75rem;">
+                  {{ med.dosage }} &bull; {{ med.get_frequency_display }}
+                </div>
+              </div>
+              {% if med.is_low_stock %}
+              <span class="badge bg-danger-subtle text-danger"
+                    style="font-size:.68rem;white-space:nowrap;">Low stock</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small mt-2">No active medicines.</p>
+          {% endif %}
+        </div>
+
+        {# Upcoming appointments #}
+        <div>
+          <div class="emg-label">Upcoming Appointments</div>
+          {% if item.upcoming_appointments %}
+          <div class="mt-2">
+            {% for appt in item.upcoming_appointments %}
+            <div class="py-2 border-bottom border-light">
+              <div class="small fw-semibold">{{ appt.get_appointment_type_display }}</div>
+              <div class="text-muted" style="font-size:.75rem;">
+                {{ appt.date_time|date:"d M Y, H:i" }}
+                {% if appt.doctor_name %}&bull; Dr. {{ appt.doctor_name }}{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small mt-2">No upcoming appointments.</p>
+          {% endif %}
+        </div>
+
+      </div>{# /col-lg-4 #}
+
+      {# ── Right: AI-extracted lab parameters ── #}
+      <div class="col-lg-8">
+
+        {% if item.extraction and item.extraction.is_completed %}
+
+          {# Source info #}
+          <div class="small text-muted mb-3">
+            <i class="bi bi-file-earmark-text me-1"></i>
+            <strong>{{ item.extraction.report.title }}</strong>
+            &bull; {{ item.extraction.report.report_date|date:"d M Y" }}
+            {% if item.extraction.report.hospital_lab %}
+            &bull; {{ item.extraction.report.hospital_lab }}
+            {% endif %}
+          </div>
+
+          {# Concern banner #}
+          {% if item.extraction.concern_parameters %}
+          <div class="alert alert-danger d-flex gap-2 align-items-start py-2 mb-3"
+               style="border-radius:10px;font-size:.83rem;">
+            <i class="bi bi-exclamation-triangle-fill text-danger flex-shrink-0 mt-1"></i>
+            <div>
+              <div class="fw-semibold mb-1">Parameters Requiring Attention</div>
+              {% for p in item.extraction.concern_parameters %}
+              <span class="badge bg-danger me-1" style="font-size:.7rem;">{{ p|title }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {# Key clinical sections only — prioritised for emergency context #}
+          {% with key_sections=item.extraction.get_key_sections %}
+          {% for section_key, section_data in key_sections.items %}
+          {% if section_data %}
+          <div class="mb-3">
+            <div class="emg-label mb-2">{{ section_key|title }}</div>
+            <div class="table-responsive">
+              <table class="table table-sm param-table mb-0">
+                <thead>
+                  <tr style="font-size:.68rem;text-transform:uppercase;
+                              letter-spacing:.6px;color:#aaa;">
+                    <th style="width:32%">Parameter</th>
+                    <th style="width:14%">Value</th>
+                    <th style="width:12%">Unit</th>
+                    <th style="width:22%">Reference</th>
+                    <th style="width:20%">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for param_key, param in section_data.items %}
+                  {% if param.status != "not_taken" %}
+                  <tr class="{% if param.status == 'concern' or param.status == 'high' or param.status == 'low' %}abnormal-row{% endif %}">
+                    <td class="small fw-semibold py-1">{{ param_key|title }}</td>
+                    <td class="small fw-bold py-1
+                      {% if param.status == 'normal' %}text-success
+                      {% elif param.status == 'concern' or param.status == 'high' %}text-danger
+                      {% elif param.status == 'low' %}text-warning
+                      {% else %}text-muted{% endif %}">
+                      {{ param.value|default:"—" }}
+                    </td>
+                    <td class="text-muted small py-1">{{ param.unit|default:"—" }}</td>
+                    <td class="text-muted small py-1">{{ param.reference_range|default:"—" }}</td>
+                    <td class="py-1">
+                      {% if param.status == "normal" %}
+                        <span class="param-badge param-normal">Normal</span>
+                      {% elif param.status == "concern" %}
+                        <span class="param-badge param-concern">Concern</span>
+                      {% elif param.status == "high" %}
+                        <span class="param-badge param-high">High</span>
+                      {% elif param.status == "low" %}
+                        <span class="param-badge param-low">Low</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+          {% endwith %}
+
+        {% else %}
+          {# Fallback: no extraction — show report list #}
+          <div class="emg-label mb-2">Recent Reports</div>
+          {% if item.latest_reports %}
+          {% for report in item.latest_reports %}
+          <div class="d-flex align-items-center gap-3 py-2 border-bottom border-light">
+            <div class="report-icon">
+              <i class="bi bi-file-earmark{% if report.file_extension == 'pdf' %}-pdf text-danger{% elif report.file_extension == 'image' %}-image text-info{% else %} text-muted{% endif %}"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="small fw-semibold">{{ report.title }}</div>
+              <div class="text-muted" style="font-size:.75rem;">
+                {{ report.get_report_type_display }} &bull; {{ report.report_date|date:"d M Y" }}
+              </div>
+            </div>
+            {% if report.file %}
+            <a href="{{ report.file.url }}" target="_blank"
+               class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;padding:.2rem .45rem;">
+              <i class="bi bi-download"></i>
+            </a>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% else %}
+          <p class="text-muted small">No reports uploaded yet.</p>
+          {% endif %}
+        {% endif %}
+
+      </div>{# /col-lg-8 #}
+    </div>{# /row #}
+  </div>{# /card-body #}
+</div>{# /card #}
+{% empty %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-people fs-1 d-block mb-3"></i>
+  No family members found.
 </div>
+{% endfor %}
+
+<style>
+.emergency-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(0,0,0,.07);
+  overflow: hidden;
+}
+.emergency-card .card-header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+.avatar-placeholder {
+  width: 44px; height: 44px;
+  background: rgba(255,255,255,.2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.emg-label {
+  font-size: .67rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.report-icon {
+  width: 34px; height: 34px;
+  background: #F0F4F2;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.param-table { font-size: .8rem; }
+.param-table td, .param-table th { padding: .3rem .4rem; vertical-align: middle; }
+.abnormal-row { background: #FFF5F5; }
+.param-badge {
+  display: inline-block;
+  padding: .12rem .45rem;
+  border-radius: 20px;
+  font-size: .68rem;
+  font-weight: 600;
+}
+.param-normal  { background: #E8F5E9; color: #2E7D32; }
+.param-concern { background: #FFEBEE; color: #C62828; }
+.param-high    { background: #FFEBEE; color: #C62828; }
+.param-low     { background: #FFF8E1; color: #E65100; }
+
+@media print {
+  .sidebar, .topbar, button, .btn { display: none !important; }
+  .main-content { margin-left: 0 !important; padding: 0 !important; }
+  .emergency-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  .card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
 {% endblock %}

@@ -1,7 +1,14 @@
 import os
 from pathlib import Path
 
+import environ
+env = environ.Env()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+READ_DOT_ENV_FILE = env.bool("DJANGO_READ_DOT_ENV_FILE", default=True)
+if READ_DOT_ENV_FILE:
+    # OS environment variables take precedence over variables from .env
+    env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = 'django-insecure-parivaar-health-secret-key-change-in-production'
 
@@ -35,6 +42,11 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'parivaar_health.urls'
+
+AZURE_OPENAI_ENDPOINT = env("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_DEPLOYMENT = env("AZURE_OPENAI_DEPLOYMENT")
+AZURE_OPENAI_API_VERSION = env("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_API_KEY = env("AZURE_OPENAI_API_KEY", )
 
 TEMPLATES = [
     {
@@ -72,6 +84,8 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
+
+
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']

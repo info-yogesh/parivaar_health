@@ -1,83 +1,328 @@
 {% extends 'base.html' %}
 {% block title %}{{ report.title }}{% endblock %}
-{% block page_title %}Report Detail{% endblock %}
+{% block page_title %}{{ report.title }}{% endblock %}
+
 {% block content %}
 <div class="row g-4">
-    <div class="col-lg-4">
-        <div class="card p-4">
-            <div class="text-center mb-3 py-4" style="background:#F0F7F5;border-radius:10px;">
-                <i class="bi {% if report.file_extension == 'pdf' %}bi-file-earmark-pdf text-danger{% elif report.file_extension == 'image' %}bi-file-earmark-image text-info{% else %}bi-file-earmark text-secondary{% endif %}" style="font-size:4rem;"></i>
-            </div>
-            <h5 class="fw-bold mb-1">{{ report.title }}</h5>
-            <span class="badge bg-light text-dark border mb-3">{{ report.get_report_type_display }}</span>
-            <div class="list-group list-group-flush small">
-                <div class="list-group-item px-0 d-flex justify-content-between">
-                    <span class="text-muted">Member</span>
-                    <strong>{{ report.member.name }}</strong>
-                </div>
-                <div class="list-group-item px-0 d-flex justify-content-between">
-                    <span class="text-muted">Report Date</span>
-                    <strong>{{ report.report_date|date:"d M Y" }}</strong>
-                </div>
-                {% if report.doctor %}
-                <div class="list-group-item px-0 d-flex justify-content-between">
-                    <span class="text-muted">Doctor</span>
-                    <strong>Dr. {{ report.doctor }}</strong>
-                </div>
-                {% endif %}
-                {% if report.hospital_lab %}
-                <div class="list-group-item px-0 d-flex justify-content-between">
-                    <span class="text-muted">Facility</span>
-                    <strong>{{ report.hospital_lab }}</strong>
-                </div>
-                {% endif %}
-                <div class="list-group-item px-0 d-flex justify-content-between">
-                    <span class="text-muted">Uploaded</span>
-                    <strong>{{ report.created_at|date:"d M Y" }}</strong>
-                </div>
-            </div>
-            {% if report.notes %}
-            <div class="mt-3">
-                <div class="text-muted small fw-semibold mb-1">Notes</div>
-                <p class="small">{{ report.notes }}</p>
-            </div>
-            {% endif %}
-            <div class="d-grid gap-2 mt-3">
-                {% if report.file %}
-                <a href="{{ report.file.url }}" class="btn btn-primary" target="_blank">
-                    <i class="bi bi-download me-1"></i> Download File
-                </a>
-                {% endif %}
-                <a href="{% url 'vault:edit' report.pk %}" class="btn btn-outline-primary">Edit</a>
-                <a href="{% url 'vault:delete' report.pk %}" class="btn btn-outline-danger">Delete</a>
-            </div>
+
+  {# ── Left column: metadata + actions ── #}
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3">
+      <div class="info-section-label mb-3">Report Information</div>
+
+      <div class="list-group list-group-flush small">
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Member</span>
+          <strong>{{ report.member.name }}</strong>
         </div>
-    </div>
-    <div class="col-lg-8">
-        {% if report.file %}
-        <div class="card">
-            <div class="card-header"><i class="bi bi-eye me-2"></i>File Preview</div>
-            <div class="card-body p-0">
-                {% if report.file_extension == 'pdf' %}
-                <iframe src="{{ report.file.url }}" width="100%" height="600px" style="border:none;border-radius:0 0 12px 12px;"></iframe>
-                {% elif report.file_extension == 'image' %}
-                <img src="{{ report.file.url }}" class="img-fluid" style="border-radius:0 0 12px 12px;" alt="{{ report.title }}">
-                {% else %}
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-file-earmark fs-1"></i>
-                    <p class="mt-2">Preview not available. <a href="{{ report.file.url }}" target="_blank">Download file</a></p>
-                </div>
-                {% endif %}
-            </div>
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Type</span>
+          <strong>{{ report.get_report_type_display }}</strong>
         </div>
-        {% else %}
-        <div class="card">
-            <div class="card-body text-center py-5 text-muted">
-                <i class="bi bi-cloud-upload fs-1"></i>
-                <p class="mt-2">No file uploaded. <a href="{% url 'vault:edit' report.pk %}">Upload one now</a></p>
-            </div>
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Date</span>
+          <strong>{{ report.report_date|date:"d M Y" }}</strong>
+        </div>
+        {% if report.doctor %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Doctor</span>
+          <strong>{{ report.doctor }}</strong>
         </div>
         {% endif %}
+        {% if report.hospital_lab %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Facility</span>
+          <strong>{{ report.hospital_lab }}</strong>
+        </div>
+        {% endif %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-muted">Uploaded</span>
+          <strong>{{ report.created_at|date:"d M Y" }}</strong>
+        </div>
+        <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+          <span class="text-muted">Extraction</span>
+          <span id="extraction-status-badge">
+            {% if not extraction %}
+              <span class="badge bg-secondary" style="font-size:.72rem;">No File</span>
+            {% elif extraction.is_completed %}
+              <span class="badge" style="background:#E8F5E9;color:#2E7D32;font-size:.72rem;">Done</span>
+            {% elif extraction.is_processing %}
+              <span class="badge bg-warning text-dark" style="font-size:.72rem;">
+                <span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem;"></span>Processing
+              </span>
+            {% elif extraction.is_failed %}
+              <span class="badge bg-danger" style="font-size:.72rem;">Failed</span>
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      {% if report.notes %}
+      <div class="mt-3">
+        <div class="text-muted small fw-semibold mb-1">Notes</div>
+        <p class="small mb-0">{{ report.notes }}</p>
+      </div>
+      {% endif %}
+
+      <div class="d-grid gap-2 mt-4">
+        {% if report.file %}
+        <a href="{{ report.file.url }}" class="btn btn-primary btn-sm" target="_blank">
+          <i class="bi bi-download me-1"></i>Download File
+        </a>
+        {% endif %}
+        <a href="{% url 'vault:edit' report.pk %}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{% url 'vault:delete' report.pk %}" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-trash me-1"></i>Delete
+        </a>
+      </div>
     </div>
-</div>
+
+    {# Health score card #}
+    {% if extraction and extraction.is_completed and extraction.health_score %}
+    <div class="card p-4 text-center">
+      <div class="text-muted small fw-semibold mb-1">Health Score</div>
+      <div class="fw-bold" style="font-size:2.8rem;color:var(--primary);">
+        {{ extraction.health_score }}
+      </div>
+      <div class="text-muted small">out of 100</div>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── Right column: preview + extraction ── #}
+  <div class="col-lg-8">
+
+    {# File preview #}
+    {% if report.file %}
+    <div class="card mb-4">
+      <div class="card-header small fw-semibold">
+        <i class="bi bi-eye me-1"></i>File Preview
+      </div>
+      <div class="card-body p-0">
+        {% if report.file_extension == "pdf" %}
+          <iframe src="{{ report.file.url }}" width="100%" height="500"
+                  style="border:none;border-radius:0 0 12px 12px;"></iframe>
+        {% elif report.file_extension == "image" %}
+          <img src="{{ report.file.url }}" class="img-fluid w-100"
+               style="border-radius:0 0 12px 12px;" alt="{{ report.title }}">
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-file-earmark fs-1"></i>
+            <p class="mt-2 small">
+              Preview not available.
+              <a href="{{ report.file.url }}" target="_blank">Download file</a>
+            </p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Extraction Panel ── #}
+    <div class="card" id="extraction-panel">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small">
+          <i class="bi bi-cpu me-2 text-primary"></i>AI Extracted Parameters
+        </span>
+        {% if extraction and extraction.is_processing %}
+        <span class="spinner-border spinner-border-sm text-warning" role="status"
+              aria-label="Extracting"></span>
+        {% endif %}
+      </div>
+
+      <div class="card-body" id="extraction-content">
+
+        {# ── COMPLETED: render parameters ── #}
+        {% if extraction and extraction.is_completed %}
+
+          {# Concern banner #}
+          {% if extraction.concern_parameters %}
+          <div class="alert alert-danger d-flex gap-2 align-items-start py-2 mb-3"
+               style="border-radius:10px;font-size:.85rem;">
+            <i class="bi bi-exclamation-triangle-fill text-danger mt-1 flex-shrink-0"></i>
+            <div>
+              <div class="fw-semibold mb-1">Parameters Requiring Attention</div>
+              <div>
+                {% for p in extraction.concern_parameters %}
+                  <span class="badge bg-danger me-1" style="font-size:.72rem;">
+                    {{ p|title }}
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {# Patient metadata from extraction #}
+          {% with pi=extraction.patient_info %}
+          {% if pi %}
+          <div class="d-flex flex-wrap gap-3 mb-3 p-3 rounded"
+               style="background:#F8FAF9;font-size:.8rem;color:#555;">
+            {% if pi.lab_name %}
+              <span><i class="bi bi-hospital me-1"></i>{{ pi.lab_name }}</span>
+            {% endif %}
+            {% if pi.collection_date %}
+              <span><i class="bi bi-calendar3 me-1"></i>Collected: {{ pi.collection_date }}</span>
+            {% endif %}
+            {% if pi.booking_id %}
+              <span><i class="bi bi-hash me-1"></i>{{ pi.booking_id }}</span>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          {# Sections #}
+          {% for section_key, section_data in extraction.sections.items %}
+            {% if section_data %}
+            <div class="mb-4">
+              <div class="info-section-label mb-2">
+                {{ section_key|title|lower|capfirst }}
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover param-table mb-0">
+                  <thead class="table-light">
+                    <tr style="font-size:.7rem;text-transform:uppercase;
+                                letter-spacing:.6px;color:#999;">
+                      <th style="width:35%">Parameter</th>
+                      <th style="width:15%">Value</th>
+                      <th style="width:12%">Unit</th>
+                      <th style="width:20%">Reference</th>
+                      <th style="width:18%">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for param_key, param in section_data.items %}
+                    <tr>
+                      <td class="fw-semibold small py-2">
+                        {{ param_key|title|lower|capfirst }}
+                      </td>
+                      <td class="small fw-bold py-2
+                        {% if param.status == 'normal' %}text-success
+                        {% elif param.status == 'concern' or param.status == 'high' %}text-danger
+                        {% elif param.status == 'low' %}text-warning
+                        {% else %}text-muted{% endif %}">
+                        {{ param.value|default:"—" }}
+                      </td>
+                      <td class="text-muted small py-2">{{ param.unit|default:"—" }}</td>
+                      <td class="text-muted small py-2">{{ param.reference_range|default:"—" }}</td>
+                      <td class="py-2">
+                        {% if param.status == "normal" %}
+                          <span class="param-badge param-normal">Normal</span>
+                        {% elif param.status == "concern" %}
+                          <span class="param-badge param-concern">Concern</span>
+                        {% elif param.status == "high" %}
+                          <span class="param-badge param-high">High</span>
+                        {% elif param.status == "low" %}
+                          <span class="param-badge param-low">Low</span>
+                        {% elif param.status == "not_taken" %}
+                          <span class="param-badge param-na">Not Taken</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+
+        {# ── PROCESSING / PENDING: spinner + auto-poll ── #}
+        {% elif extraction and extraction.is_processing %}
+          <div class="text-center py-5" id="extraction-loading-state">
+            <div class="spinner-border mb-3" style="color:var(--primary);" role="status"></div>
+            <p class="fw-semibold mb-1">Extracting health parameters...</p>
+            <p class="text-muted small">This usually takes 15–30 seconds.</p>
+          </div>
+
+        {# ── FAILED ── #}
+        {% elif extraction and extraction.is_failed %}
+          <div class="text-center py-4">
+            <i class="bi bi-exclamation-circle text-danger fs-2 mb-2 d-block"></i>
+            <p class="fw-semibold text-danger mb-1">Parameter extraction failed</p>
+            {% if extraction.error_message %}
+              <p class="text-muted small">{{ extraction.error_message }}</p>
+            {% endif %}
+          </div>
+
+        {# ── NO EXTRACTION (no file uploaded) ── #}
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-file-earmark-x fs-2 mb-2 d-block"></i>
+            <p class="small mb-0">No file uploaded — parameters cannot be extracted.</p>
+          </div>
+        {% endif %}
+
+      </div>{# /card-body #}
+    </div>{# /card #}
+
+  </div>{# /col-lg-8 #}
+</div>{# /row #}
+
+
+{# ── AJAX polling (only when extraction is in-progress) ── #}
+{% if extraction and extraction.is_processing %}
+<script>
+(function () {
+  const POLL_URL = "{% url 'vault:extraction_status' report.pk %}";
+  const POLL_MS  = 5000;   // poll every 5 s
+  const MAX_TRIES = 36;    // give up after 3 minutes
+
+  let tries = 0;
+
+  function poll() {
+    if (tries >= MAX_TRIES) return;
+    tries++;
+
+    fetch(POLL_URL, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+      .then(r => r.json())
+      .then(data => {
+        if (data.is_completed) {
+          // Reload to render full parameter table from server
+          window.location.reload();
+        } else if (data.status === "failed") {
+          document.getElementById("extraction-status-badge").innerHTML =
+            '<span class="badge bg-danger" style="font-size:.72rem;">Failed</span>';
+          document.getElementById("extraction-content").innerHTML =
+            '<div class="text-center py-4 text-danger small">' +
+            '<i class="bi bi-exclamation-circle me-1"></i>' +
+            'Extraction failed: ' + (data.error || "Unknown error") + '</div>';
+        } else {
+          setTimeout(poll, POLL_MS);
+        }
+      })
+      .catch(() => setTimeout(poll, POLL_MS));
+  }
+
+  setTimeout(poll, POLL_MS);
+})();
+</script>
+{% endif %}
+
+
+<style>
+.info-section-label {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.param-table { font-size: .82rem; }
+.param-table td, .param-table th { vertical-align: middle; }
+.param-badge {
+  display: inline-block;
+  padding: .15rem .5rem;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 600;
+}
+.param-normal  { background: #E8F5E9; color: #2E7D32; }
+.param-concern { background: #FFEBEE; color: #C62828; }
+.param-high    { background: #FFEBEE; color: #C62828; }
+.param-low     { background: #FFF8E1; color: #E65100; }
+.param-na      { background: #F5F5F5; color: #9E9E9E; }
+</style>
 {% endblock %}
