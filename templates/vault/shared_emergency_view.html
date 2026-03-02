@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emergency Health — {{ family.name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root { --primary:#2E7D32; --primary-dark:#1B5E20; }
+    body { background:#F0F7F4; font-family:'Segoe UI',system-ui,sans-serif; }
+    .topbar { background:linear-gradient(135deg,var(--primary-dark),var(--primary)); padding:1rem 1.5rem; }
+    .emg-card { border:none; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); overflow:hidden; margin-bottom:1.5rem; }
+    .emg-header { background:linear-gradient(135deg,var(--primary-dark),var(--primary)); padding:1rem 1.25rem; }
+    .emg-avatar { width:42px; height:42px; background:rgba(255,255,255,.2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; }
+    .emg-label { font-size:.67rem; text-transform:uppercase; letter-spacing:1px; font-weight:700; color:var(--primary); }
+    .report-icon { width:32px; height:32px; background:#EFF5F2; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+    .rh:hover { background:#EEF5F2 !important; cursor:pointer; }
+    .expand-chevron { transition:transform .2s; }
+    .expand-chevron.rotated { transform:rotate(180deg); }
+    .param-table { font-size:.8rem; }
+    .param-table td, .param-table th { padding:.3rem .4rem; vertical-align:middle; }
+    .abnormal-row { background:#FFF5F5; }
+    .pb { display:inline-block; padding:.12rem .45rem; border-radius:20px; font-size:.68rem; font-weight:600; }
+    .pb-n { background:#E8F5E9; color:#2E7D32; }
+    .pb-c { background:#FFEBEE; color:#C62828; }
+    .pb-h { background:#FFEBEE; color:#C62828; }
+    .pb-l { background:#FFF8E1; color:#E65100; }
+    @media print {
+      .topbar .np, .btn { display:none !important; }
+      body { background:#fff; }
+      .emg-card { box-shadow:none !important; border:1px solid #ddd !important; }
+    }
+  </style>
+</head>
+<body>
+<div class="topbar d-flex justify-content-between align-items-center">
+  <div>
+    <div class="fw-bold text-white"><i class="bi bi-shield-plus me-2"></i>Parivaar Health — Emergency Summary</div>
+    <div class="text-white-50 small">
+      {{ family.name }} Family
+      {% if link.member %} &bull; {{ link.member.name }} only{% endif %}
+      {% if link.label %} &bull; Shared for: {{ link.label }}{% endif %}
+    </div>
+  </div>
+  <button onclick="window.print()" class="btn btn-sm btn-light text-success fw-semibold np">
+    <i class="bi bi-printer me-1"></i>Print
+  </button>
+</div>
+
+<div class="container-fluid px-3 px-md-4 py-4" style="max-width:1100px;">
+  <div class="alert alert-warning d-flex gap-2 align-items-start py-2 mb-4" style="border-radius:10px;font-size:.83rem;">
+    <i class="bi bi-exclamation-triangle-fill text-warning flex-shrink-0 mt-1"></i>
+    <div><strong>For healthcare provider reference only.</strong> Shared by patient's caregiver via Parivaar Health. Verify all information with the patient directly.</div>
+  </div>
+
+  {% for item in members_data %}
+  <div class="emg-card">
+    <div class="emg-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <div class="emg-avatar">{{ item.member.name|first|upper }}</div>
+        <div>
+          <div class="fw-bold text-white">{{ item.member.name }}</div>
+          <div class="text-white-50 small">
+            {{ item.member.get_relationship_display }}
+            {% if item.member.get_age %}&bull; {{ item.member.get_age }} yrs{% endif %}
+            &bull; {{ item.member.get_gender_display }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-4 bg-white">
+      <div class="row g-4">
+        <div class="col-lg-4">
+          {% if item.chronic_conditions %}
+          <div class="mb-4">
+            <div class="emg-label mb-2">Known Conditions</div>
+            {% for cc in item.chronic_conditions %}
+            <span class="badge rounded-pill me-1 mb-1" style="background:#FFF3E0;color:#E65100;font-size:.78rem;">{{ cc.get_condition_display }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="mb-4">
+            <div class="emg-label mb-2">Active Medicines</div>
+            {% if item.active_medicines %}
+              {% for med in item.active_medicines %}
+              <div class="py-2 border-bottom border-light small">
+                <div class="fw-semibold">{{ med.name }}</div>
+                <div class="text-muted" style="font-size:.75rem;">{{ med.dosage }} &bull; {{ med.get_frequency_display }}</div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <p class="text-muted small">None recorded.</p>
+            {% endif %}
+          </div>
+
+          {% if item.upcoming_appointments %}
+          <div>
+            <div class="emg-label mb-2">Upcoming Appointments</div>
+            {% for appt in item.upcoming_appointments %}
+            <div class="py-2 border-bottom border-light small">
+              <div class="fw-semibold">{{ appt.get_appointment_type_display }}</div>
+              <div class="text-muted" style="font-size:.75rem;">{{ appt.date_time|date:"d M Y, H:i" }}{% if appt.doctor_name %} &bull; Dr. {{ appt.doctor_name }}{% endif %}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-lg-8">
+          <div class="emg-label mb-3">Reports ({{ item.report_items|length }})</div>
+          {% for ri in item.report_items %}
+          {% with r=ri.report e=ri.extraction %}
+          <div class="mb-2">
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3 rh" style="background:#F8FAF9;"
+                 data-bs-toggle="collapse" data-bs-target="#se-{{ r.pk|slugify }}" aria-expanded="false">
+              <div class="report-icon flex-shrink-0">
+                {% if r.file_extension == "pdf" %}<i class="bi bi-file-earmark-pdf text-danger"></i>
+                {% else %}<i class="bi bi-file-earmark-image text-info"></i>{% endif %}
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold small text-truncate">{{ r.title }}</div>
+                <div class="text-muted" style="font-size:.75rem;">{{ r.get_report_type_display }} &bull; {{ r.report_date|date:"d M Y" }}{% if r.hospital_lab %} &bull; {{ r.hospital_lab }}{% endif %}</div>
+              </div>
+              <div class="flex-shrink-0 d-flex align-items-center gap-2">
+                {% if e and e.is_completed %}
+                  {% if e.concern_parameters %}
+                  <span class="badge bg-danger-subtle text-danger" style="font-size:.68rem;">{{ e.concern_parameters|length }} concern{{ e.concern_parameters|length|pluralize }}</span>
+                  {% else %}
+                  <span class="badge" style="background:#E8F5E9;color:#2E7D32;font-size:.68rem;">All Normal</span>
+                  {% endif %}
+                  <i class="bi bi-chevron-down text-muted small expand-chevron"></i>
+                {% else %}
+                  <span class="badge bg-secondary bg-opacity-25 text-secondary" style="font-size:.68rem;">No Data</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if e and e.is_completed %}
+            <div class="collapse" id="se-{{ r.pk|slugify }}">
+              <div class="p-3 pt-2 rounded-bottom-3" style="background:#FAFCFB;border:1px solid #E8F0EE;border-top:none;">
+                {% if e.concern_parameters %}
+                <div class="alert alert-danger d-flex gap-2 align-items-start py-2 mb-3" style="border-radius:10px;font-size:.83rem;">
+                  <i class="bi bi-exclamation-triangle-fill text-danger flex-shrink-0 mt-1"></i>
+                  <div>
+                    <div class="fw-semibold mb-1">Needs Attention</div>
+                    {% for p in e.concern_parameters %}<span class="badge bg-danger me-1" style="font-size:.7rem;">{{ p|title }}</span>{% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+
+                {% with pi=e.patient_info %}
+                {% if pi %}
+                <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+                  {% if pi.lab_name %}<span><i class="bi bi-hospital me-1"></i>{{ pi.lab_name }}</span>{% endif %}
+                  {% if pi.collection_date %}<span><i class="bi bi-calendar3 me-1"></i>{{ pi.collection_date }}</span>{% endif %}
+                  {% if e.health_score %}<span class="fw-bold" style="color:var(--primary);"><i class="bi bi-heart-pulse me-1"></i>Health Score: {{ e.health_score }}/100</span>{% endif %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                {% for section_key, section_data in e.sections.items %}
+                {% if section_data %}
+                <div class="mb-3">
+                  <div class="emg-label mb-2">{{ section_key|title }}</div>
+                  <div class="table-responsive">
+                    <table class="table table-sm param-table mb-0">
+                      <thead>
+                        <tr style="font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:#aaa;">
+                          <th style="width:32%">Parameter</th><th style="width:13%">Value</th>
+                          <th style="width:11%">Unit</th><th style="width:25%">Reference</th>
+                          <th style="width:19%">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for pname, param in section_data.items %}
+                        {% if param.status != "not_taken" %}
+                        <tr class="{% if param.status == 'concern' or param.status == 'high' or param.status == 'low' %}abnormal-row{% endif %}">
+                          <td class="small fw-semibold py-1">{{ pname|title }}</td>
+                          <td class="small fw-bold py-1 {% if param.status == 'normal' %}text-success{% elif param.status == 'concern' or param.status == 'high' %}text-danger{% elif param.status == 'low' %}text-warning{% else %}text-muted{% endif %}">{{ param.value|default:"—" }}</td>
+                          <td class="text-muted small py-1">{{ param.unit|default:"—" }}</td>
+                          <td class="text-muted small py-1">{{ param.reference_range|default:"—" }}</td>
+                          <td class="py-1">
+                            {% if param.status == "normal" %}<span class="pb pb-n">Normal</span>
+                            {% elif param.status == "concern" %}<span class="pb pb-c">Concern</span>
+                            {% elif param.status == "high" %}<span class="pb pb-h">High</span>
+                            {% elif param.status == "low" %}<span class="pb pb-l">Low</span>{% endif %}
+                          </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="text-center py-5 text-muted"><i class="bi bi-people fs-1 d-block mb-3"></i>No member data available.</div>
+  {% endfor %}
+
+  <p class="text-center text-muted mt-3" style="font-size:.72rem;">
+    <i class="bi bi-shield-check me-1"></i>Powered by Parivaar Health &bull; Emergency access only
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(el => {
+  const t = document.querySelector(el.getAttribute('data-bs-target'));
+  if (!t) return;
+  t.addEventListener('show.bs.collapse',  () => el.querySelector('.expand-chevron')?.classList.add('rotated'));
+  t.addEventListener('hide.bs.collapse', () => el.querySelector('.expand-chevron')?.classList.remove('rotated'));
+});
+</script>
+</body>
+</html>

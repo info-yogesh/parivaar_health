@@ -1,22 +1,4 @@
-"""
-vault/models.py
-
-Changes from original:
-  - Report: added soft-delete fields (is_deleted, deleted_at) + has_extraction() helper
-  - ReportExtraction: NEW separate OneToOne model — owns all AI extraction concerns
-      report.extraction.sections          → all extracted sections
-      report.extraction.get_section(key)  → single section
-      report.extraction.concern_parameters → flagged params
-      report.extraction.patient_info      → patient metadata from report
-
-Design rationale for separate model vs JSONField on Report:
-  - Report = file + metadata record (stable, form-driven, admin-friendly)
-  - ReportExtraction = AI pipeline output (changes independently, re-runnable)
-  - Re-extraction = update existing ReportExtraction row, never touch Report
-  - DRF: serializers can be written independently per concern
-  - Django admin: separate ModelAdmin with its own list_display/filters
-"""
-
+from django.contrib.auth.hashers import make_password, check_password
 from django.db import models
 from django.utils import timezone
 from accounts.models import Family, FamilyMember
@@ -245,3 +227,85 @@ class VaultAccessLog(models.Model):
 
     def __str__(self):
         return f"{self.accessed_by} — {self.report} — {self.action} — {self.accessed_at}"
+
+
+class EmergencyShareLink(models.Model):
+    """
+    Password-protected shareable emergency health link.
+
+    Caregiver creates a link → gets a URL like:
+        /vault/emergency/share/<token>/
+    Shares URL + chosen password with a doctor.
+    Doctor enters password → sees emergency view (read-only, no Django login).
+
+    Design decisions:
+        - token is the PK (UUID) — also the URL slug
+        - password stored as Django hash (make_password / check_password)
+        - member=None → shows all family members
+        - member=<obj> → shows only that member (e.g. share just for one patient)
+        - is_active=False → revoke without losing audit record
+        - last_accessed_at → caregiver can see when doctor last viewed
+    """
+
+    token = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+        help_text="URL token. Regenerate to invalidate old link.",
+    )
+    family = models.ForeignKey(
+        Family,
+        on_delete=models.CASCADE,
+        related_name="emergency_share_links",
+    )
+    member = models.ForeignKey(
+        FamilyMember,
+        on_delete=models.CASCADE,
+        related_name="emergency_share_links",
+        null=True,
+        blank=True,
+        help_text="Null = all members. Set to restrict to one member.",
+    )
+    password_hash = models.CharField(
+        max_length=255,
+        help_text="Django hashed password.",
+    )
+    label = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Optional label, e.g. 'Dr. Mehta', 'Apollo Hospital'.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_accessed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Emergency Share Link"
+        verbose_name_plural = "Emergency Share Links"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.label or "Unnamed"
+        scope = self.member.name if self.member else "All Members"
+        return f"{label} — {scope} ({'Active' if self.is_active else 'Revoked'})"
+
+    def set_password(self, raw_password: str) -> None:
+        """Hash and store raw_password."""
+        self.password_hash = make_password(raw_password)
+
+    def check_password(self, raw_password: str) -> bool:
+        """Validate raw_password against stored hash."""
+        return check_password(raw_password, self.password_hash)
+
+    def revoke(self) -> None:
+        self.is_active = False
+        self.save(update_fields=["is_active", "updated_at"])
+
+    def record_access(self) -> None:
+        self.last_accessed_at = timezone.now()
+        self.save(update_fields=["last_accessed_at"])

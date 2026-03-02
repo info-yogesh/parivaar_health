@@ -3,35 +3,29 @@
 {% block page_title %}Emergency Health View{% endblock %}
 
 {% block content %}
-
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <p class="text-muted small mb-0">
     <i class="bi bi-shield-exclamation me-1 text-danger"></i>
     Critical health summary for {{ family.name }} — for emergency reference only
   </p>
-  <button onclick="window.print()" class="btn btn-sm btn-outline-danger">
-    <i class="bi bi-printer me-1"></i>Print
-  </button>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+      <i class="bi bi-printer me-1"></i>Print
+    </button>
+  </div>
 </div>
 
+{# ── Per-member cards ── #}
 {% for item in members_data %}
-<div class="card mb-4 emergency-card">
+<div class="card mb-4 emg-card">
 
-  {# ── Member header ── #}
-  <div class="card-header py-3">
+  {# Member header #}
+  <div class="card-header emg-header py-3 px-4">
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-3">
-        {% if item.member.profile_photo %}
-          <img src="{{ item.member.profile_photo.url }}"
-               class="rounded-circle" width="44" height="44"
-               style="object-fit:cover;" alt="{{ item.member.name }}">
-        {% else %}
-          <div class="avatar-placeholder">
-            <i class="bi bi-person-fill text-white fs-5"></i>
-          </div>
-        {% endif %}
+        <div class="emg-avatar">{{ item.member.name|first|upper }}</div>
         <div>
-          <div class="fw-bold text-white">{{ item.member.name }}</div>
+          <div class="fw-bold text-white fs-6">{{ item.member.name }}</div>
           <div class="text-white-50 small">
             {{ item.member.get_relationship_display }}
             {% if item.member.get_age %}&bull; {{ item.member.get_age }} yrs{% endif %}
@@ -39,256 +33,482 @@
           </div>
         </div>
       </div>
-      {% if item.extraction and item.extraction.health_score %}
-      <div class="text-center">
-        <div class="fw-bold text-white fs-3 lh-1">{{ item.extraction.health_score }}</div>
-        <div class="text-white-50" style="font-size:.65rem;">Health Score</div>
-      </div>
-      {% endif %}
     </div>
   </div>
 
   <div class="card-body p-4">
     <div class="row g-4">
 
-      {# ── Left: clinical overview ── #}
-      <div class="col-lg-4">
+      {# Left: overview #}
+      <div class="col-lg-4 col-md-5">
 
-        {# Chronic conditions #}
         {% if item.chronic_conditions %}
         <div class="mb-4">
-          <div class="emg-label">Chronic Conditions</div>
-          <div class="d-flex flex-wrap gap-2 mt-2">
-            {% for cc in item.chronic_conditions %}
-            <span class="badge rounded-pill"
+          <div class="emg-label mb-2">Chronic Conditions</div>
+          {% for cc in item.chronic_conditions %}
+            <span class="badge rounded-pill me-1 mb-1"
                   style="background:#FFF3E0;color:#E65100;font-size:.78rem;">
               {{ cc.get_condition_display }}
             </span>
-            {% endfor %}
-          </div>
+          {% endfor %}
         </div>
         {% endif %}
 
-        {# Active medicines #}
         <div class="mb-4">
-          <div class="emg-label">Active Medicines</div>
+          <div class="emg-label mb-2">Active Medicines</div>
           {% if item.active_medicines %}
-          <div class="mt-2">
             {% for med in item.active_medicines %}
             <div class="d-flex justify-content-between align-items-start
-                        py-2 border-bottom border-light">
+                        py-2 border-bottom border-light small">
               <div>
-                <div class="small fw-semibold">{{ med.name }}</div>
+                <div class="fw-semibold">{{ med.name }}</div>
                 <div class="text-muted" style="font-size:.75rem;">
                   {{ med.dosage }} &bull; {{ med.get_frequency_display }}
                 </div>
               </div>
               {% if med.is_low_stock %}
               <span class="badge bg-danger-subtle text-danger"
-                    style="font-size:.68rem;white-space:nowrap;">Low stock</span>
+                    style="font-size:.68rem;">Low</span>
               {% endif %}
             </div>
             {% endfor %}
-          </div>
           {% else %}
-          <p class="text-muted small mt-2">No active medicines.</p>
+            <p class="text-muted small">No active medicines.</p>
           {% endif %}
         </div>
 
-        {# Upcoming appointments #}
+        {% if item.upcoming_appointments %}
         <div>
-          <div class="emg-label">Upcoming Appointments</div>
-          {% if item.upcoming_appointments %}
-          <div class="mt-2">
-            {% for appt in item.upcoming_appointments %}
-            <div class="py-2 border-bottom border-light">
-              <div class="small fw-semibold">{{ appt.get_appointment_type_display }}</div>
-              <div class="text-muted" style="font-size:.75rem;">
-                {{ appt.date_time|date:"d M Y, H:i" }}
-                {% if appt.doctor_name %}&bull; Dr. {{ appt.doctor_name }}{% endif %}
-              </div>
+          <div class="emg-label mb-2">Upcoming Appointments</div>
+          {% for appt in item.upcoming_appointments %}
+          <div class="py-2 border-bottom border-light small">
+            <div class="fw-semibold">{{ appt.get_appointment_type_display }}</div>
+            <div class="text-muted" style="font-size:.75rem;">
+              {{ appt.date_time|date:"d M Y, H:i" }}
+              {% if appt.doctor_name %}&bull; Dr. {{ appt.doctor_name }}{% endif %}
             </div>
-            {% endfor %}
           </div>
-          {% else %}
-          <p class="text-muted small mt-2">No upcoming appointments.</p>
-          {% endif %}
+          {% endfor %}
         </div>
+        {% endif %}
 
       </div>{# /col-lg-4 #}
 
-      {# ── Right: AI-extracted lab parameters ── #}
-      <div class="col-lg-8">
+      {# Right: report list with expandable parameters #}
+      <div class="col-lg-8 col-md-7">
+        <div class="emg-label mb-3">
+          Reports ({{ item.report_items|length }})
+        </div>
 
-        {% if item.extraction and item.extraction.is_completed %}
+        {% if item.report_items %}
+          {% for ri in item.report_items %}
+          {% with report=ri.report extraction=ri.extraction %}
+          <div class="report-row mb-2">
 
-          {# Source info #}
-          <div class="small text-muted mb-3">
-            <i class="bi bi-file-earmark-text me-1"></i>
-            <strong>{{ item.extraction.report.title }}</strong>
-            &bull; {{ item.extraction.report.report_date|date:"d M Y" }}
-            {% if item.extraction.report.hospital_lab %}
-            &bull; {{ item.extraction.report.hospital_lab }}
-            {% endif %}
-          </div>
+            {# Report summary row #}
+            <div class="d-flex align-items-center gap-3 p-3 rounded-3
+                        report-row-header"
+                 style="background:#F8FAF9;cursor:pointer;"
+                 data-bs-toggle="collapse"
+                 data-bs-target="#params-{{ report.pk|slugify }}"
+                 aria-expanded="false">
 
-          {# Concern banner #}
-          {% if item.extraction.concern_parameters %}
-          <div class="alert alert-danger d-flex gap-2 align-items-start py-2 mb-3"
-               style="border-radius:10px;font-size:.83rem;">
-            <i class="bi bi-exclamation-triangle-fill text-danger flex-shrink-0 mt-1"></i>
-            <div>
-              <div class="fw-semibold mb-1">Parameters Requiring Attention</div>
-              {% for p in item.extraction.concern_parameters %}
-              <span class="badge bg-danger me-1" style="font-size:.7rem;">{{ p|title }}</span>
-              {% endfor %}
-            </div>
-          </div>
-          {% endif %}
+              {# File type icon #}
+              <div class="report-icon flex-shrink-0">
+                {% if report.file_extension == "pdf" %}
+                  <i class="bi bi-file-earmark-pdf text-danger"></i>
+                {% elif report.file_extension == "image" %}
+                  <i class="bi bi-file-earmark-image text-info"></i>
+                {% else %}
+                  <i class="bi bi-file-earmark text-muted"></i>
+                {% endif %}
+              </div>
 
-          {# Key clinical sections only — prioritised for emergency context #}
-          {% with key_sections=item.extraction.get_key_sections %}
-          {% for section_key, section_data in key_sections.items %}
-          {% if section_data %}
-          <div class="mb-3">
-            <div class="emg-label mb-2">{{ section_key|title }}</div>
-            <div class="table-responsive">
-              <table class="table table-sm param-table mb-0">
-                <thead>
-                  <tr style="font-size:.68rem;text-transform:uppercase;
-                              letter-spacing:.6px;color:#aaa;">
-                    <th style="width:32%">Parameter</th>
-                    <th style="width:14%">Value</th>
-                    <th style="width:12%">Unit</th>
-                    <th style="width:22%">Reference</th>
-                    <th style="width:20%">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {% for param_key, param in section_data.items %}
-                  {% if param.status != "not_taken" %}
-                  <tr class="{% if param.status == 'concern' or param.status == 'high' or param.status == 'low' %}abnormal-row{% endif %}">
-                    <td class="small fw-semibold py-1">{{ param_key|title }}</td>
-                    <td class="small fw-bold py-1
-                      {% if param.status == 'normal' %}text-success
-                      {% elif param.status == 'concern' or param.status == 'high' %}text-danger
-                      {% elif param.status == 'low' %}text-warning
-                      {% else %}text-muted{% endif %}">
-                      {{ param.value|default:"—" }}
-                    </td>
-                    <td class="text-muted small py-1">{{ param.unit|default:"—" }}</td>
-                    <td class="text-muted small py-1">{{ param.reference_range|default:"—" }}</td>
-                    <td class="py-1">
-                      {% if param.status == "normal" %}
-                        <span class="param-badge param-normal">Normal</span>
-                      {% elif param.status == "concern" %}
-                        <span class="param-badge param-concern">Concern</span>
-                      {% elif param.status == "high" %}
-                        <span class="param-badge param-high">High</span>
-                      {% elif param.status == "low" %}
-                        <span class="param-badge param-low">Low</span>
-                      {% endif %}
-                    </td>
-                  </tr>
+              {# Report metadata #}
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold small text-truncate">{{ report.title }}</div>
+                <div class="text-muted" style="font-size:.75rem;">
+                  {{ report.get_report_type_display }}
+                  &bull; {{ report.report_date|date:"d M Y" }}
+                  {% if report.hospital_lab %}&bull; {{ report.hospital_lab }}{% endif %}
+                </div>
+              </div>
+
+              {# Extraction badge #}
+              <div class="flex-shrink-0 d-flex align-items-center gap-2">
+                {% if extraction and extraction.is_completed %}
+                  {% if extraction.concern_parameters %}
+                  <span class="badge bg-danger-subtle text-danger"
+                        style="font-size:.68rem;">
+                    {{ extraction.concern_parameters|length }} concern{{ extraction.concern_parameters|length|pluralize }}
+                  </span>
+                  {% else %}
+                  <span class="badge"
+                        style="background:#E8F5E9;color:#2E7D32;font-size:.68rem;">
+                    All Normal
+                  </span>
                   {% endif %}
-                {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% endif %}
-          {% endfor %}
-          {% endwith %}
+                  <span class="text-muted small">View Parameters</span>
+                  <i class="bi bi-chevron-down text-muted small expand-chevron"></i>
+                {% elif extraction and extraction.is_processing %}
+                  <span class="badge bg-warning text-dark" style="font-size:.68rem;">
+                    <span class="spinner-border spinner-border-sm me-1"
+                          style="width:.55rem;height:.55rem;"></span>Extracting
+                  </span>
+                {% elif extraction and extraction.is_failed %}
+                  <span class="badge bg-danger" style="font-size:.68rem;">
+                    Extraction Failed
+                  </span>
+                {% else %}
+                  <span class="badge bg-secondary bg-opacity-25 text-secondary"
+                        style="font-size:.68rem;">No Extraction</span>
+                {% endif %}
 
-        {% else %}
-          {# Fallback: no extraction — show report list #}
-          <div class="emg-label mb-2">Recent Reports</div>
-          {% if item.latest_reports %}
-          {% for report in item.latest_reports %}
-          <div class="d-flex align-items-center gap-3 py-2 border-bottom border-light">
-            <div class="report-icon">
-              <i class="bi bi-file-earmark{% if report.file_extension == 'pdf' %}-pdf text-danger{% elif report.file_extension == 'image' %}-image text-info{% else %} text-muted{% endif %}"></i>
-            </div>
-            <div class="flex-grow-1">
-              <div class="small fw-semibold">{{ report.title }}</div>
-              <div class="text-muted" style="font-size:.75rem;">
-                {{ report.get_report_type_display }} &bull; {{ report.report_date|date:"d M Y" }}
+                {% if report.file %}
+                <a href="{{ report.file.url }}" target="_blank"
+                   class="btn btn-sm btn-outline-secondary"
+                   style="font-size:.72rem;padding:.2rem .45rem;"
+                   onclick="event.stopPropagation()">
+                  <i class="bi bi-download"></i>
+                </a>
+                {% endif %}
               </div>
             </div>
-            {% if report.file %}
-            <a href="{{ report.file.url }}" target="_blank"
-               class="btn btn-sm btn-outline-secondary" style="font-size:.75rem;padding:.2rem .45rem;">
-              <i class="bi bi-download"></i>
-            </a>
-            {% endif %}
-          </div>
+
+            {# Collapsible parameters panel #}
+            {% if extraction and extraction.is_completed %}
+            <div class="collapse" id="params-{{ report.pk|slugify }}">
+              <div class="p-3 pt-2 rounded-bottom-3"
+                   style="background:#FAFCFB;border:1px solid #E8F0EE;border-top:none;">
+
+                {# Concern banner #}
+                {% if extraction.concern_parameters %}
+                <div class="alert alert-danger d-flex gap-2 align-items-start
+                            py-2 mb-3" style="border-radius:10px;font-size:.83rem;">
+                  <i class="bi bi-exclamation-triangle-fill text-danger
+                             flex-shrink-0 mt-1"></i>
+                  <div>
+                    <div class="fw-semibold mb-1">Needs Attention</div>
+                    {% for p in extraction.concern_parameters %}
+                    <span class="badge bg-danger me-1"
+                          style="font-size:.7rem;">{{ p|title }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+
+                {# Patient info row #}
+                {% with pi=extraction.patient_info %}
+                {% if pi %}
+                <div class="d-flex flex-wrap gap-3 mb-3 small text-muted">
+                  {% if pi.lab_name %}
+                    <span><i class="bi bi-hospital me-1"></i>{{ pi.lab_name }}</span>
+                  {% endif %}
+                  {% if pi.collection_date %}
+                    <span><i class="bi bi-calendar3 me-1"></i>{{ pi.collection_date }}</span>
+                  {% endif %}
+                  {% if extraction.health_score %}
+                    <span class="fw-bold" style="color:var(--primary);">
+                      <i class="bi bi-heart-pulse me-1"></i>
+                      Health Score: {{ extraction.health_score }}/100
+                    </span>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                {# Parameter sections #}
+                {% for section_key, section_data in extraction.sections.items %}
+                {% if section_data %}
+                <div class="mb-3">
+                  <div class="emg-label mb-2">{{ section_key|title }}</div>
+                  <div class="table-responsive">
+                    <table class="table table-sm param-table mb-0">
+                      <thead>
+                        <tr style="font-size:.68rem;text-transform:uppercase;
+                                   letter-spacing:.6px;color:#aaa;">
+                          <th style="width:32%">Parameter</th>
+                          <th style="width:13%">Value</th>
+                          <th style="width:11%">Unit</th>
+                          <th style="width:25%">Reference</th>
+                          <th style="width:19%">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for pk, param in section_data.items %}
+                        {% if param.status != "not_taken" %}
+                        <tr class="{% if param.status == 'concern' or param.status == 'high' or param.status == 'low' %}abnormal-row{% endif %}">
+                          <td class="small fw-semibold py-1">{{ pk|title }}</td>
+                          <td class="small fw-bold py-1
+                            {% if param.status == 'normal' %}text-success
+                            {% elif param.status == 'concern' or param.status == 'high' %}text-danger
+                            {% elif param.status == 'low' %}text-warning
+                            {% else %}text-muted{% endif %}">
+                            {{ param.value|default:"—" }}
+                          </td>
+                          <td class="text-muted small py-1">{{ param.unit|default:"—" }}</td>
+                          <td class="text-muted small py-1">{{ param.reference_range|default:"—" }}</td>
+                          <td class="py-1">
+                            {% if param.status == "normal" %}
+                              <span class="param-badge param-normal">Normal</span>
+                            {% elif param.status == "concern" %}
+                              <span class="param-badge param-concern">Concern</span>
+                            {% elif param.status == "high" %}
+                              <span class="param-badge param-high">High</span>
+                            {% elif param.status == "low" %}
+                              <span class="param-badge param-low">Low</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+
+              </div>
+            </div>
+            {% endif %}{# /if extraction completed #}
+
+          </div>{# /report-row #}
+          {% endwith %}
           {% endfor %}
-          {% else %}
-          <p class="text-muted small">No reports uploaded yet.</p>
-          {% endif %}
+        {% else %}
+          <p class="text-muted small">No reports uploaded for this member.</p>
         {% endif %}
 
       </div>{# /col-lg-8 #}
     </div>{# /row #}
   </div>{# /card-body #}
-</div>{# /card #}
+</div>{# /emg-card #}
 {% empty %}
 <div class="text-center py-5 text-muted">
-  <i class="bi bi-people fs-1 d-block mb-3"></i>
-  No family members found.
+  <i class="bi bi-people fs-1 d-block mb-3"></i>No family members found.
 </div>
 {% endfor %}
 
+
+{# ── Share Link Management ── #}
+<div class="card mt-4" id="share-links">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">
+      <i class="bi bi-share me-2 text-primary"></i>Shared Emergency Links
+    </span>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="collapse"
+            data-bs-target="#create-link-form">
+      <i class="bi bi-plus me-1"></i>Create New Link
+    </button>
+  </div>
+
+  {# Create form #}
+  <div class="collapse" id="create-link-form">
+    <div class="card-body border-bottom pb-4"
+         style="background:#F8FAF9;">
+      <div class="fw-semibold small mb-3">Create Shareable Link</div>
+      <form method="post" action="{% url 'vault:share_link_create' %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Label
+              <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            {{ share_form.label }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Restrict to Member
+              <span class="text-muted fw-normal">(optional)</span>
+            </label>
+            {{ share_form.member }}
+          </div>
+        </div>
+        <div class="row g-3 mt-0">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Password</label>
+            {{ share_form.password }}
+            <div class="form-text">Min 6 characters. Share this with the doctor separately.</div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Confirm Password</label>
+            {{ share_form.confirm_password }}
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-link-45deg me-1"></i>Create Link
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# Existing links table #}
+  <div class="card-body p-0">
+    {% if share_links %}
+    <div class="table-responsive">
+      <table class="table table-sm mb-0" style="font-size:.85rem;">
+        <thead class="table-light">
+          <tr style="font-size:.7rem;text-transform:uppercase;
+                      letter-spacing:.6px;color:#999;">
+            <th class="px-4 py-3">Label</th>
+            <th class="py-3">Scope</th>
+            <th class="py-3">Status</th>
+            <th class="py-3">Last Accessed</th>
+            <th class="py-3">Created</th>
+            <th class="py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for link in share_links %}
+          <tr class="{% if not link.is_active %}text-muted{% endif %}">
+            <td class="px-4 py-3">
+              <div class="fw-semibold">{{ link.label|default:"—" }}</div>
+              <div class="text-muted" style="font-size:.72rem;font-family:monospace;">
+                /vault/emergency/share/{{ link.token }}/
+              </div>
+            </td>
+            <td class="py-3">
+              {% if link.member %}
+                <span class="badge rounded-pill"
+                      style="background:#E8F5E9;color:#2E7D32;font-size:.72rem;">
+                  {{ link.member.name }}
+                </span>
+              {% else %}
+                <span class="text-muted small">All members</span>
+              {% endif %}
+            </td>
+            <td class="py-3">
+              {% if link.is_active %}
+                <span class="badge"
+                      style="background:#E8F5E9;color:#2E7D32;font-size:.72rem;">
+                  Active
+                </span>
+              {% else %}
+                <span class="badge bg-secondary bg-opacity-25 text-secondary"
+                      style="font-size:.72rem;">Revoked</span>
+              {% endif %}
+            </td>
+            <td class="py-3 text-muted small">
+              {% if link.last_accessed_at %}
+                {{ link.last_accessed_at|date:"d M Y, H:i" }}
+              {% else %}
+                Never
+              {% endif %}
+            </td>
+            <td class="py-3 text-muted small">
+              {{ link.created_at|date:"d M Y" }}
+            </td>
+            <td class="py-3">
+              <div class="d-flex gap-2">
+                {% if link.is_active %}
+                <button class="btn btn-xs btn-outline-primary"
+                        onclick="copyLink('{{ request.scheme }}://{{ request.get_host }}/vault/emergency/share/{{ link.token }}/')"
+                        title="Copy link">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+                <form method="post"
+                      action="{% url 'vault:share_link_revoke' link.token %}"
+                      class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-xs btn-outline-warning"
+                          title="Revoke"
+                          onclick="return confirm('Revoke this link? The doctor will lose access.')">
+                    <i class="bi bi-slash-circle"></i>
+                  </button>
+                </form>
+                {% endif %}
+                <form method="post"
+                      action="{% url 'vault:share_link_delete' link.token %}"
+                      class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-xs btn-outline-danger"
+                          title="Delete"
+                          onclick="return confirm('Permanently delete this link record?')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-share fs-2 d-block mb-2"></i>
+      <p class="small mb-0">No share links created yet.</p>
+      <p class="small">Create one above to share with a doctor.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+
+<script>
+// Chevron rotation on expand/collapse
+document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(el => {
+  const targetId = el.getAttribute('data-bs-target');
+  const target   = document.querySelector(targetId);
+  if (!target) return;
+  target.addEventListener('show.bs.collapse',  () => {
+    el.querySelector('.expand-chevron')?.classList.add('rotated');
+  });
+  target.addEventListener('hide.bs.collapse', () => {
+    el.querySelector('.expand-chevron')?.classList.remove('rotated');
+  });
+});
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 m-3 alert alert-success py-2 px-3 small shadow';
+    toast.style.zIndex = 9999;
+    toast.textContent = 'Link copied to clipboard!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  });
+}
+</script>
+
 <style>
-.emergency-card {
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 2px 16px rgba(0,0,0,.07);
-  overflow: hidden;
-}
-.emergency-card .card-header {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-}
-.avatar-placeholder {
-  width: 44px; height: 44px;
-  background: rgba(255,255,255,.2);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+.emg-card { border:none; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.07); overflow:hidden; }
+.emg-header { background:linear-gradient(135deg, var(--primary-dark, #1B5E20), var(--primary, #2E7D32)); }
+.emg-avatar {
+  width:44px; height:44px; background:rgba(255,255,255,.2); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; color:#fff; font-size:1.1rem;
 }
 .emg-label {
-  font-size: .67rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 700;
-  color: var(--primary);
+  font-size:.67rem; text-transform:uppercase;
+  letter-spacing:1px; font-weight:700; color:var(--primary);
 }
 .report-icon {
-  width: 34px; height: 34px;
-  background: #F0F4F2;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  width:34px; height:34px; background:#F0F4F2; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; font-size:1rem;
 }
-.param-table { font-size: .8rem; }
-.param-table td, .param-table th { padding: .3rem .4rem; vertical-align: middle; }
-.abnormal-row { background: #FFF5F5; }
+.report-row-header:hover { background:#EEF5F2 !important; }
+.expand-chevron { transition:transform .2s ease; }
+.expand-chevron.rotated { transform:rotate(180deg); }
+.param-table { font-size:.8rem; }
+.param-table td, .param-table th { padding:.3rem .4rem; vertical-align:middle; }
+.abnormal-row { background:#FFF5F5; }
 .param-badge {
-  display: inline-block;
-  padding: .12rem .45rem;
-  border-radius: 20px;
-  font-size: .68rem;
-  font-weight: 600;
+  display:inline-block; padding:.12rem .45rem;
+  border-radius:20px; font-size:.68rem; font-weight:600;
 }
-.param-normal  { background: #E8F5E9; color: #2E7D32; }
-.param-concern { background: #FFEBEE; color: #C62828; }
-.param-high    { background: #FFEBEE; color: #C62828; }
-.param-low     { background: #FFF8E1; color: #E65100; }
+.param-normal  { background:#E8F5E9; color:#2E7D32; }
+.param-concern { background:#FFEBEE; color:#C62828; }
+.param-high    { background:#FFEBEE; color:#C62828; }
+.param-low     { background:#FFF8E1; color:#E65100; }
+.btn-xs { padding:.15rem .4rem; font-size:.72rem; border-radius:6px; }
 
 @media print {
-  .sidebar, .topbar, button, .btn { display: none !important; }
-  .main-content { margin-left: 0 !important; padding: 0 !important; }
-  .emergency-card { box-shadow: none !important; border: 1px solid #ddd !important; }
-  .card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sidebar, .topbar, button, .btn, #share-links { display:none !important; }
+  .main-content { margin-left:0 !important; padding:0 !important; }
+  .emg-card { box-shadow:none !important; border:1px solid #ddd !important; }
 }
 </style>
 {% endblock %}
